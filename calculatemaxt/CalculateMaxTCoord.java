@@ -193,4 +193,9 @@ public class CalculateMaxTCoord
    {
 //      aHerd.discharge();
    }
+   
+   public void death(Cow aCow, Herd aHerd)
+   {
+       aHerd.remove(aCow);
+   }
 }

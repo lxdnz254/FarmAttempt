@@ -129,6 +129,13 @@ public class Cow
 //        farm = null;
 //        milkTakings = new HashSet<MilkTakings>();
 //    }
-
+    /**
+     * Returns a string representation of the Cow object
+     * @return 
+     */
     
+    public String toString()
+    {
+        return this.getTagID();
+    }
 }

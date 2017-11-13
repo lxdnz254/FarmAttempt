@@ -2,6 +2,7 @@ package gui;
 
 import calculatemaxt.*;
 import java.util.*;
+import m256gui.*;
 
 /**
  *
@@ -10,9 +11,14 @@ import java.util.*;
 public class HomeScreen extends javax.swing.JFrame
 {
     private CalculateMaxTCoord calculateMaxTCoord;
-    private Cow cow;
+    private Cow cow; 
     private Herd herd;
     private Farm farm;
+    
+    // Current selected farm, herds, cows
+    private Farm currentFarm;
+    private Herd currentHerd;
+    private Cow currentCow;
     /**
      * Creates new form HomeScreen
      */
@@ -52,7 +58,7 @@ public class HomeScreen extends javax.swing.JFrame
         UniqueIDField.setText("");
         //Cow Tab
         cowTagIDField.setText("");
-}
+    }
 
     //The methods in this section are concerned with the Edit Cow tab
 
@@ -68,32 +74,70 @@ public class HomeScreen extends javax.swing.JFrame
             return;
         }
 
-        Herd theHerd = (Herd)herdList4.getSelectedValue();
+        Herd theHerd = currentHerd;
+        try {
         calculateMaxTCoord.birth(theCowTagID, theHerd);
         outcomeArea5.setText("Outcome: Cow " + theCowTagID + " has been birthed in "
             + theHerd + " herd.");
-
+        displayCows();
+        }
+        catch (NullPointerException e)
+        {
+            outcomeArea5.setText("Outcome: No Herd currently selected: " + e);
+        }
+        
     }
 
     /**
      * Get all the cows from the coordinating object and reset the cow lists
      */
-    private void updateCowLists()
+    private void updateCowLists(List<Cow> cowData)
     {
-//        cowList1.setListData(getCows());
-        cowList2.setListData(calculateMaxTCoord.getCows(herd));
+        cowList1.setListData(cowData);
+        cowList2.setListData(cowData);
+    }
+    
+    private void clearCowLists()
+    {
+        List<Cow> data = new ArrayList<>();
+        cowList1.setListData(data);
+        cowList2.setListData(data);
     }
 
     private void displayCows()
     {
-        Herd theHerd = (Herd) herdList1.getSelectedValue();
-        Collection<Cow> cows = calculateMaxTCoord.getCows(theHerd);
-        List<String> cowData = new ArrayList<String>();
-        for (Cow eachCow : cows)
+        clearCowLists();
+        if (currentHerd != null)
         {
-            cowData.add(eachCow.getTagID());
+            try
+            {
+                Herd theHerd = currentHerd;
+                Collection<Cow> cows = calculateMaxTCoord.getCows(theHerd);
+                if (!cows.isEmpty())
+                {
+                    List<Cow> cowData = new ArrayList<>();
+                    for (Cow eachCow : cows)
+                    {
+                        cowData.add(eachCow);
+                    }
+                    updateCowLists(cowData);
+                }
+                else
+                {
+                    outcomeArea5.setText("Outcome: No cows in the herd");
+                }
+                
+            }
+            catch(NullPointerException e)
+            {
+                outcomeArea5.setText("Outcome: No herds Selected :" + e);
+            }
         }
-        cowList2.setListData(cowData);
+    }
+    
+    private void selectCow(M256JList list)
+    {
+        currentCow = (Cow)list.getSelectedValue();
     }
 
     private void removeCow()
@@ -102,20 +146,27 @@ public class HomeScreen extends javax.swing.JFrame
 //        TagID tagID = cow.getTagID();
 
         // Initiate the Delete Cow use case
-//        calculateMaxTCoord.death(cow);
-
-        // A cow has been removed so need to update the cow map and lists
-        updateCowLists();
-
-        // Update the currently selected cow
-//       if (calculateMaxTCoord.getCows().isEmpty())
+        try
         {
-            cow = null;
+            calculateMaxTCoord.death(currentCow, currentHerd);
+
+            // A cow has been removed so need to update the cow map and lists
+            displayCows();
+
+            // Update the currently selected cow
+            if (calculateMaxTCoord.getCows(currentHerd).isEmpty())
+            {
+                currentCow = null;
+            }
+    //        else  // select the first cow in alpha order
+            {
+                cowList2.setSelectedIndex(0);
+                currentCow = (Cow)cowList2.getSelectedValue();
+            }
         }
-//        else  // select the first cow in alpha order
+        catch(Exception e)
         {
-            cowList2.setSelectedIndex(0);
-            cow = (Cow)cowList2.getSelectedValue();
+            outcomeArea5.setText("Outcome: an error happend when removing cow :" + e);
         }
     }
 
@@ -137,34 +188,42 @@ public class HomeScreen extends javax.swing.JFrame
             return;
         }
 
-        Farm theFarm = (Farm)farmList4.getSelectedValue();
+        Farm theFarm = currentFarm;
         calculateMaxTCoord.create(theTitle, theUniqueID, theFarm);
         outcomeArea4.setText("Outcome: Herd " + theTitle + " has been created in "
             + theFarm + " farm.");
     }
+    
+    private void selectHerd(M256JList list)
+    {
+        currentHerd = (Herd)list.getSelectedValue();
+        displayCows();
+    }
 
     private void displayHerds()
     {
-        Farm theFarm = (Farm) farmList4.getSelectedValue();
+        Farm theFarm = currentFarm;
+        try {
         Collection<Herd> herds = calculateMaxTCoord.getHerds(theFarm);
-        List<String> herdData = new ArrayList<String>();
+        List<Herd> herdData = new ArrayList<>();
         for (Herd eachHerd : herds)
         {
-            herdData.add(eachHerd.getTitle() + "... "
-                    + eachHerd.getUniqueID());
+            herdData.add(eachHerd);
         }
+        updateHerdLists(herdData);
+        }
+        catch (NullPointerException e)
+        {
+            outcomeArea4.setText("Outcome: No Farm selected :" + e);
+        }
+    }
+
+    private void updateHerdLists(List<Herd> herdData)
+    {
         herdList1.setListData(herdData);
         herdList2.setListData(herdData);
         herdList4.setListData(herdData);
         herdList5.setListData(herdData);
-    }
-
-    private void updateHerdLists()
-    {
-        herdList1.setListData(calculateMaxTCoord.getHerds(farm));
-        herdList2.setListData(calculateMaxTCoord.getHerds(farm));
-        herdList4.setListData(calculateMaxTCoord.getHerds(farm));
-        herdList5.setListData(calculateMaxTCoord.getHerds(farm));
     }
 
     private void removeHerd()
@@ -178,29 +237,29 @@ public class HomeScreen extends javax.swing.JFrame
 
         // Remember the herd's title
 //        Title title = herd.getTitle();
-        Herd theHerd = (Herd)herdList4.getSelectedValue();
+        Herd theHerd = currentHerd;
 
         // Initiate the Delete Herd use case
         String message = "";
-        calculateMaxTCoord.remove(herd);
+        calculateMaxTCoord.remove(theHerd);
 
         // A herd has been removed so need to update the herd map and lists
-        updateHerdLists();
+        displayHerds();
 
         // Update the currently selected herd
-        if (calculateMaxTCoord.getHerds(farm).isEmpty())
+        if (calculateMaxTCoord.getHerds(currentFarm).isEmpty())
         {
-            herd = null;
+            currentHerd = null;
             message = "\nThere are now no herds in the system.";
         }
         else  // select the first herd in alpha order
         {
             herdList4.setSelectedIndex(0);
-            herd = (Herd)herdList4.getSelectedValue();
+            currentHerd = (Herd)herdList4.getSelectedValue();
         }
 
         // Report success
-        outcomeArea4.setText("Removal of " + herd + " has been recorded" + message);
+        outcomeArea4.setText("Removal of " + currentHerd + " has been recorded" + message);
     }
 
         //The methods in this section are concerned with the Edit Farm tab
@@ -227,24 +286,31 @@ public class HomeScreen extends javax.swing.JFrame
             outcomeArea3.setText("Error: You need to enter a farm ID.");
             return;
         }
-
-        Farm theFarm = (Farm)farmList3.getSelectedValue();
-
         calculateMaxTCoord.addFarm(theFarmName, theLocation, theFarmID);
         outcomeArea3.setText("Outcome: Farm " + theFarmName + " has been added to the collection of farms.");
+        displayFarms();
      }
-
+    
+    private void selectFarm(M256JList list)
+    {
+        currentFarm = (Farm)list.getSelectedValue();
+        displayHerds();
+        displayCows();
+    }
+    
     private void displayFarms()
     {
-        Farm theFarm = (Farm) farmList3.getSelectedValue();
         Collection<Farm> farms = calculateMaxTCoord.getFarms();
-        List<String> farmData = new ArrayList<String>();
+        List<Farm> farmData = new ArrayList<>();
         for (Farm eachFarm : farms)
         {
-            farmData.add(eachFarm.getName() + ", "
-                    + eachFarm.getLocation() + ", "
-                    + eachFarm.getFarmID());
+            farmData.add(eachFarm);
         }
+        updateFarmLists(farmData);
+    }
+
+    private void updateFarmLists(List<Farm> farmData)
+    {
         farmList1.setListData(farmData);
         farmList2.setListData(farmData);
         farmList3.setListData(farmData);
@@ -252,36 +318,27 @@ public class HomeScreen extends javax.swing.JFrame
         farmList5.setListData(farmData);
     }
 
-    private void updateFarmLists()
-    {
-        farmList1.setListData(calculateMaxTCoord.getFarms());
-        farmList2.setListData(calculateMaxTCoord.getFarms());
-        farmList3.setListData(calculateMaxTCoord.getFarms());
-        farmList4.setListData(calculateMaxTCoord.getFarms());
-        farmList5.setListData(calculateMaxTCoord.getFarms());
-    }
-
     private void removeFarm()
     {
         // Remember the farm's name
 //        Name name = farm.getName();
-        Farm theFarm = (Farm)farmList3.getSelectedValue();
+        Farm theFarm = currentFarm;
 
         // Initiate the Delete Farm use case
-        calculateMaxTCoord.remove(farm);
+        calculateMaxTCoord.remove(theFarm);
 
         // A farm has been removed so need to update the farm map and lists
-        updateFarmLists();
+        displayFarms();
 
         // Update the currently selected farm
         if (calculateMaxTCoord.getFarms().isEmpty())
         {
-            farm = null;
+            currentFarm = null;
         }
         else  // select the first farm in alpha order
         {
             farmList3.setSelectedIndex(0);
-            farm = (Farm)farmList3.getSelectedValue();
+            currentFarm = (Farm)farmList3.getSelectedValue();
         }
     }
 
@@ -447,16 +504,16 @@ private void resetOutcomeMessage()
         });
 
         farmList1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        farmList1.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                farmList1ValueChanged(evt);
+        farmList1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                farmList1MouseClicked(evt);
             }
         });
 
         herdList1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        herdList1.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                herdList1ValueChanged(evt);
+        herdList1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                herdList1MouseClicked(evt);
             }
         });
 
@@ -591,7 +648,7 @@ private void resetOutcomeMessage()
                                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                     .addComponent(AverageYieldButton)
                                     .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 13, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(outcomeArea1, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -599,16 +656,16 @@ private void resetOutcomeMessage()
         CalculateMaxTSystem.addTab("HOME", homeTab);
 
         farmList2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        farmList2.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                farmList2ValueChanged(evt);
+        farmList2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                farmList2MouseClicked(evt);
             }
         });
 
         herdList2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        herdList2.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                herdList2ValueChanged(evt);
+        herdList2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                herdList2MouseClicked(evt);
             }
         });
 
@@ -660,9 +717,9 @@ private void resetOutcomeMessage()
         jScrollPane7.setViewportView(jTextPane5);
 
         cowList1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        cowList1.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                cowList1ValueChanged(evt);
+        cowList1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                cowList1MouseClicked(evt);
             }
         });
 
@@ -751,7 +808,7 @@ private void resetOutcomeMessage()
                         .addComponent(herdList2, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(outcomeArea2, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(13, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         CalculateMaxTSystem.addTab("MILK", milkTab);
@@ -796,9 +853,9 @@ private void resetOutcomeMessage()
         jLabel19.setText("Farm Name, Location, ID");
 
         farmList3.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        farmList3.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                farmList3ValueChanged(evt);
+        farmList3.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                farmList3MouseClicked(evt);
             }
         });
 
@@ -894,7 +951,7 @@ private void resetOutcomeMessage()
                             .addComponent(addFarmButton))
                         .addGap(18, 18, 18)
                         .addComponent(DeleteFarmButton)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 13, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(outcomeArea3, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -943,16 +1000,16 @@ private void resetOutcomeMessage()
         jLabel21.setText("Herd Name, ID");
 
         farmList4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        farmList4.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                farmList4ValueChanged(evt);
+        farmList4.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                farmList4MouseClicked(evt);
             }
         });
 
         herdList4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        herdList4.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                herdList4ValueChanged(evt);
+        herdList4.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                herdList4MouseClicked(evt);
             }
         });
 
@@ -1046,7 +1103,7 @@ private void resetOutcomeMessage()
                                 .addGap(18, 18, 18)
                                 .addComponent(DeleteHerdButton))
                             .addComponent(herdList4, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 13, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(outcomeArea4, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -1093,27 +1150,27 @@ private void resetOutcomeMessage()
         jLabel22.setText("Farm Name, Location, ID");
 
         farmList5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        farmList5.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                farmList5ValueChanged(evt);
+        farmList5.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                farmList5MouseClicked(evt);
             }
         });
 
         jLabel23.setText("Herd Name, ID");
 
         herdList5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        herdList5.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                herdList5ValueChanged(evt);
+        herdList5.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                herdList5MouseClicked(evt);
             }
         });
 
         jLabel24.setText("Cow");
 
         cowList2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        cowList2.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
-                cowList2ValueChanged(evt);
+        cowList2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                cowList2MouseClicked(evt);
             }
         });
 
@@ -1202,7 +1259,7 @@ private void resetOutcomeMessage()
                         .addComponent(DeleteCowButton)
                         .addGap(26, 26, 26)))
                 .addComponent(outcomeArea5, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(19, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         CalculateMaxTSystem.addTab("COW", cowTab);
@@ -1334,80 +1391,9 @@ private void resetOutcomeMessage()
         calculateAY();
     }//GEN-LAST:event_AverageYieldButtonActionPerformed
 
-    private void farmList1ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_farmList1ValueChanged
-        Farm theFarm = (Farm)farmList1.getSelectedValue();
-        Collection<Herd> herds = calculateMaxTCoord.getHerds(theFarm);
-        List<String> herdData = new ArrayList<String>();
-        for (Herd eachHerd : herds)
-        {
-            herdData.add(eachHerd.getTitle());
-        }
-        herdList1.setListData(herdData);
-    }//GEN-LAST:event_farmList1ValueChanged
-
-    private void herdList1ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_herdList1ValueChanged
-    }//GEN-LAST:event_herdList1ValueChanged
-
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
         // TODO add your handling code here:
     }//GEN-LAST:event_formWindowOpened
-
-    private void farmList2ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_farmList2ValueChanged
-        Farm theFarm = (Farm)farmList2.getSelectedValue();
-        Collection<Herd> herds = calculateMaxTCoord.getHerds(theFarm);
-        List<String> herdData = new ArrayList<String>();
-        for (Herd eachHerd : herds)
-        {
-            herdData.add(eachHerd.getTitle());
-        }
-        herdList2.setListData(herdData);
-    }//GEN-LAST:event_farmList2ValueChanged
-
-    private void herdList2ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_herdList2ValueChanged
-        displayHerds();
-    }//GEN-LAST:event_herdList2ValueChanged
-
-    private void farmList3ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_farmList3ValueChanged
-//        displayFarms();
-    }//GEN-LAST:event_farmList3ValueChanged
-
-    private void farmList4ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_farmList4ValueChanged
-        Farm theFarm = (Farm)farmList4.getSelectedValue();
-        Collection<Herd> herds = calculateMaxTCoord.getHerds(theFarm);
-        List<String> herdData = new ArrayList<String>();
-        for (Herd eachHerd : herds)
-        {
-            herdData.add(eachHerd.getTitle());
-        }
-        herdList4.setListData(herdData);
-    }//GEN-LAST:event_farmList4ValueChanged
-
-    private void herdList4ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_herdList4ValueChanged
-        displayHerds();
-    }//GEN-LAST:event_herdList4ValueChanged
-
-    private void farmList5ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_farmList5ValueChanged
-        Farm theFarm = (Farm)farmList5.getSelectedValue();
-        Collection<Herd> herds = calculateMaxTCoord.getHerds(theFarm);
-        List<String> herdData = new ArrayList<String>();
-        for (Herd eachHerd : herds)
-        {
-            herdData.add(eachHerd.getTitle());
-        }
-        herdList5.setListData(herdData);
-    }//GEN-LAST:event_farmList5ValueChanged
-
-    private void herdList5ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_herdList5ValueChanged
-        displayHerds();
-    }//GEN-LAST:event_herdList5ValueChanged
-
-    private void cowList1ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_cowList1ValueChanged
-        displayCows();
-    }//GEN-LAST:event_cowList1ValueChanged
-
-    private void cowList2ValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_cowList2ValueChanged
-        displayCows();
-    }//GEN-LAST:event_cowList2ValueChanged
 
     private void DeleteFarmButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DeleteFarmButtonActionPerformed
        removeFarm();
@@ -1466,6 +1452,61 @@ private void resetOutcomeMessage()
     private void NumberCowsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NumberCowsButtonActionPerformed
         calculateNC();
     }//GEN-LAST:event_NumberCowsButtonActionPerformed
+
+    private void farmList2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_farmList2MouseClicked
+        // TODO add your handling code here:
+        selectFarm(farmList2);
+    }//GEN-LAST:event_farmList2MouseClicked
+
+    private void farmList1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_farmList1MouseClicked
+        // TODO add your handling code here:
+        selectFarm(farmList1);
+    }//GEN-LAST:event_farmList1MouseClicked
+
+    private void farmList3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_farmList3MouseClicked
+        // TODO add your handling code here:
+        selectFarm(farmList3);
+    }//GEN-LAST:event_farmList3MouseClicked
+
+    private void farmList4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_farmList4MouseClicked
+        // TODO add your handling code here:
+        selectFarm(farmList4);
+    }//GEN-LAST:event_farmList4MouseClicked
+
+    private void farmList5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_farmList5MouseClicked
+        // TODO add your handling code here:
+        selectFarm(farmList5);
+    }//GEN-LAST:event_farmList5MouseClicked
+
+    private void herdList1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_herdList1MouseClicked
+        // TODO add your handling code here:
+        selectHerd(herdList1);
+    }//GEN-LAST:event_herdList1MouseClicked
+
+    private void herdList2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_herdList2MouseClicked
+        // TODO add your handling code here:
+        selectHerd(herdList2);
+    }//GEN-LAST:event_herdList2MouseClicked
+
+    private void herdList4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_herdList4MouseClicked
+        // TODO add your handling code here:
+        selectHerd(herdList4);
+    }//GEN-LAST:event_herdList4MouseClicked
+
+    private void herdList5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_herdList5MouseClicked
+        // TODO add your handling code here:
+        selectHerd(herdList5);
+    }//GEN-LAST:event_herdList5MouseClicked
+
+    private void cowList1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_cowList1MouseClicked
+        // TODO add your handling code here:
+        selectCow(cowList1);
+    }//GEN-LAST:event_cowList1MouseClicked
+
+    private void cowList2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_cowList2MouseClicked
+        // TODO add your handling code here:
+        selectCow(cowList2);
+    }//GEN-LAST:event_cowList2MouseClicked
     
     /**
      * @param args the command line arguments

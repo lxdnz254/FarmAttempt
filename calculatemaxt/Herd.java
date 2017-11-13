@@ -33,6 +33,7 @@ public class Herd
     {
         title = aTitle;
         uniqueID = aUniqueID;
+        cows = new HashSet<>();
     }
    
    
